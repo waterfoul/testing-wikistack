@@ -9,7 +9,7 @@ const bluebird = require('bluebird');
 
 describe('Page model', function () {
 	beforeEach(function() {
-		return models.Page.sync({force: true})
+		return models.User.sync({force: true}).then(() => models.Page.sync({force: true}));
 	});
 	describe('Virtuals', function () {
 		let page;

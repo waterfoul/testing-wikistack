@@ -9,7 +9,7 @@ const models = require('../models');
 
 describe('http requests', function () {
 	beforeEach(function() {
-		return models.Page.sync({force: true})
+		return models.User.sync({force: true}).then(() => models.Page.sync({force: true}));
 	});
 	describe('GET /wiki/', function () {
 		it('responds with 200', function() {
@@ -59,7 +59,7 @@ describe('http requests', function () {
 	describe('POST /wiki', function () {
 		it('responds with 302', function() {
 			return agent.post('/wiki')
-				.send(encodeURI('name=bob&email=bob%40gmail.com&title=the title&content=my best content'))
+				.send(encodeURI('name=bob&email=bob@gmail.com&title=the title&content=my best content'))
 				.expect(302); 		
 		});  		
 		it('creates a page in the database', function() {

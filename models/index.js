@@ -1,9 +1,20 @@
 var Sequelize = require('sequelize');
 var marked = require('marked');
 
-var db = new Sequelize('postgres://localhost:5432/wikistack', { 
-    logging: false 
-});
+var db;
+if(typeof global.it === 'function') {
+    db = new Sequelize('postgres://localhost:5432/wikistack_test', { 
+        logging: false 
+    });
+    console.log('is test qqqqq');
+} 
+else {
+    db = new Sequelize('postgres://localhost:5432/wikistack', { 
+        logging: false 
+    });
+    console.log('is server qqqqq');
+
+}
 
 var Page = db.define('page', {
     title: {
@@ -91,8 +102,10 @@ var User = db.define('user', {
     },
     email: {
         type: Sequelize.STRING,
-        isEmail: true,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            isEmail: true
+        }
     }
 });
 
