@@ -2,6 +2,8 @@ const models = require('../models');
 const chai = require('chai');
 const spies = require('chai-spies');
 chai.use(spies);
+const chai_as_promised = require('chai-as-promised');
+chai.use(chai_as_promised);
 const marked = require('marked');
 const bluebird = require('bluebird');
 
@@ -31,98 +33,75 @@ describe('Page model', function () {
 	describe('Class methods', function () {
 		describe('findByTag', function () {
 			let pages = [];
-			beforeEach(function(done) {
+			beforeEach(function() {
 				pages[0] = models.Page.build({title: 'test_title0', content: 'test_content', tags: ['test_tag_1', 'test_tag_2', 'test_tag_3']});
 				pages[1] = models.Page.build({title: 'test_title1', content: 'test_content', tags: ['test_tag_3']});
 				pages[2] = models.Page.build({title: 'test_title2', content: 'test_content', tags: ['test_tag_4']});
-				bluebird.all(pages.map(page => page.save())).then(() => done());
+				return bluebird.all(pages.map(page => page.save()));
 			});
-			it('gets pages with the search tag', function(done) {
-				bluebird.all([
-					models.Page.findByTag('test_tag_1'),
-					models.Page.findByTag('test_tag_3'),
-					models.Page.findByTag('test_tag_4')
-				]).spread((tag1, tag2, tag3) => {
-					chai.expect(tag1).to.have.lengthOf(1); // true
-					chai.expect(tag2).to.have.lengthOf(2); // true
-					chai.expect(tag3).to.have.lengthOf(1); // true
-					done();
-				})
-
-
+			it('gets pages with the search tag', function() {
+				return bluebird.all([
+					chai.expect(models.Page.findByTag('test_tag_1'))
+						.to.eventually.have.lengthOf(1),
+					chai.expect(models.Page.findByTag('test_tag_3'))
+						.to.eventually.have.lengthOf(2),
+					chai.expect(models.Page.findByTag('test_tag_4'))
+						.to.eventually.have.lengthOf(1)												
+				]);
 			});
-			it('does not get pages without the search tag', function(done) {
-				models.Page.findByTag('NotAtTag').then((tags) => {
-					chai.expect(tags).to.have.lengthOf(0);
-					done();
-				})
-
+			it('does not get pages without the search tag', function() {
+				return chai.expect(models.Page.findByTag('NotAtTag'))
+						.to.eventually.have.lengthOf(0);
 			});
 		});
 	});
 
 	describe('Instance methods', function () {
 		let pages = [];
-		beforeEach(function(done) {
+		beforeEach(function() {
 			pages[0] = models.Page.build({title: 'test_title0', content: 'test_content', tags: ['test_tag_1', 'test_tag_2', 'test_tag_3']});
 			pages[1] = models.Page.build({title: 'test_title1', content: 'test_content', tags: ['test_tag_3']});
 			pages[3] = models.Page.build({title: 'test_title3', content: 'test_content', tags: ['test_tag_1', 'test_tag_2']});
 			pages[2] = models.Page.build({title: 'test_title2', content: 'test_content', tags: ['test_tag_4']});
-			bluebird.all(pages.map(page => page.save())).then(() => done());
+			return bluebird.all(pages.map(page => page.save()));
 		});
 
 		describe('findSimilar', function () {
-			it('never gets itself', function (done) {
-				pages[2].findSimilar().then((similarPages) => {
-					chai.expect(similarPages).to.have.lengthOf(0);
-					done();
-				})
+			it('never gets itself', function () {
+				return chai.expect(pages[2].findSimilar())
+					.to.eventually.have.lengthOf(0);
 			});
-			it('gets other pages with any common tags', function (done) {
-				pages[0].findSimilar().then((similarPages) => {
-					chai.expect(similarPages).to.have.lengthOf(2);
-					done();
-				})
+			it('gets other pages with any common tags', function () {
+				return chai.expect(pages[0].findSimilar())
+					.to.eventually.have.lengthOf(2);	
 			});
-			it('does not get other pages without any common tags', function (done) {
-				pages[3].findSimilar().then((similarPages) => {
-					chai.expect(similarPages).to.have.lengthOf(1);
-					done();
-				})
+			it('does not get other pages without any common tags', function () {
+				return chai.expect(pages[3].findSimilar())
+					.to.eventually.have.lengthOf(1);
 			});
 		});
 	});
 
 	describe('Validations', function () {
-		it('errors without title', function (done) {
+		it('errors without title', function () {
 			const page = models.Page.build({
 				content: 'test_content',
 				tags: ['test_tag_1', 'test_tag_2', 'test_tag_3']
 			})
 
-			page.save().then(
-				() => chai.assert(false, 'Promise Resolved'),
-				(e) => {
-					chai.expect(e.message).to.contain('title');
-					done()
-				}
-			);
+			return chai.expect(page.save())
+				.to.be.rejectedWith('notNull Violation: title cannot be null');
+
 		});
-		it('errors without content', function (done) {
+		it('errors without content', function () {
 			const page = models.Page.build({
 				title: 'test_title0',
 				tags: ['test_tag_1', 'test_tag_2', 'test_tag_3']
 			})
-
-			page.save().then(
-				() => chai.assert(false, 'Promise Resolved'),
-				(e) => {
-					chai.expect(e.message).to.contain('content');
-					done()
-				}
-			);
+			return chai.expect(page.save())
+				.to.be.rejectedWith(/content/);
 		});
-		it('errors given an invalid status', function (done) {
+		it('errors given an invalid status', function () {
 			const page = models.Page.build({
 				title: 'test_title0',
 				status: 'invalid',
@@ -130,18 +109,22 @@ describe('Page model', function () {
 				tags: ['test_tag_1', 'test_tag_2', 'test_tag_3']
 			})
 
-			page.save().then(
-				() => chai.assert(false, 'Promise Resolved'),
-				(e) => {
-					chai.expect(e.message).to.contain('status');
-					done()
-				}
-			);
+			return chai.expect(page.save())
+				.to.be.rejectedWith(/status/);
 		});
 	});
 
 	describe('Hooks', function () {
-		it('it sets urlTitle based on title before validating');
+    beforeEach(function() {
+      page = models.Page.build({title: 'test title', content: 'test content', });
+      page.save();
+    });
+    describe('hooks', function () {
+      it('it sets urlTitle based on title before validating', function() {
+        chai.expect(page.urlTitle).to.equal('test_title');
+      });
+    });
 	});
+
 
 });
