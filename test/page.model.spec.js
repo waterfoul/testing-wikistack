@@ -43,16 +43,18 @@ describe('Page model', function () {
           models.Page.findByTag('test_tag_3'),
           models.Page.findByTag('test_tag_4')
         ]).spread((tag1, tag2, tag3) => {
-          chai.expect(tag1).to.equal([pages[0]]); // true
-          chai.expect(tag2).to.equal([pages[0], pages[1]]); // true
-          chai.expect(tag3).to.equal([pages[2]]); // true
+          chai.expect(tag1).to.have.lengthOf(1); // true
+          chai.expect(tag2).to.have.lengthOf(2); // true
+          chai.expect(tag3).to.have.lengthOf(1); // true
           done();
         })
 
 
       });
-      it('does not get pages without the search tag', function() {
-
+      it('does not get pages without the search tag', function(done) {
+        models.Page.findByTag('NotAtTag').then((tags) => {
+          chai.expect(tags).to.have.lengthOf(0);
+        })
 
       });
     });
